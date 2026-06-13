@@ -9,7 +9,13 @@ export default function ThreeCanvas() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    let active = true;
+    setTimeout(() => {
+      if (active) setMounted(true);
+    }, 0);
+    return () => {
+      active = false;
+    };
   }, []);
 
   if (!mounted) {
@@ -120,7 +126,7 @@ export default function ThreeCanvas() {
       {/* Warm tagline indicator */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 text-center pointer-events-none w-[90%]">
         <p className="text-[10px] text-neutral-400 font-semibold tracking-wider uppercase">
-          "We are in this journey together"
+          &quot;We are in this journey together&quot;
         </p>
       </div>
     </div>

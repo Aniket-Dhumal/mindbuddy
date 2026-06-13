@@ -18,7 +18,6 @@ export default function AudioAnalyzer() {
   } = useApp();
 
   const [dbLevel, setDbLevel] = useState(-100); // Decibel level: -100 to 0
-  const [rmsLevel, setRmsLevel] = useState(0); // Normalized RMS level: 0 to 1
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -39,7 +38,7 @@ export default function AudioAnalyzer() {
 
       streamRef.current = stream;
       
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       const audioCtx = new AudioContextClass();
       audioContextRef.current = audioCtx;
 
@@ -68,7 +67,6 @@ export default function AudioAnalyzer() {
         const rms = Math.sqrt(sumSquares / bufferLength);
         const db = rms > 0 ? 20 * Math.log10(rms) : -100;
 
-        setRmsLevel(rms);
         setDbLevel(Math.max(db, -100));
 
         const openness = Math.min(Math.max(rms * 2.8, 0.05), 1.0);
@@ -78,9 +76,10 @@ export default function AudioAnalyzer() {
       };
 
       analyze();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Microphone access failed", err);
-      addLiveLog(`Error accessing mic: ${err.message || "Permissions denied"}`);
+      const error = err as Error;
+      addLiveLog(`Error accessing mic: ${error.message || "Permissions denied"}`);
       announceToScreenReader("Failed to access microphone. Please check your system settings.");
       setIsMicActive(false);
     }
@@ -108,7 +107,6 @@ export default function AudioAnalyzer() {
     setIsMicActive(false);
     setMouthOpenness(0.1);
     setDbLevel(-100);
-    setRmsLevel(0);
     addLiveLog("Microphone stream closed. Audio analysis ended.");
     announceToScreenReader("Microphone turned off.");
   };

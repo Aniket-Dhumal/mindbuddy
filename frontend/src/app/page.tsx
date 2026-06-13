@@ -6,25 +6,16 @@ import ThreeCanvas from "../components/ThreeCanvas";
 import AudioAnalyzer from "../components/AudioAnalyzer";
 import { 
   Heart, 
-  Sparkles, 
   Send, 
   Compass, 
   ShieldCheck, 
-  User, 
   Smile, 
-  Zap, 
   BookOpen,
-  ArrowRight,
   HelpCircle,
-  Activity,
   MessageSquare,
-  Terminal,
-  Wifi,
-  AlertTriangle,
   ListChecks,
   Lock,
-  RefreshCw,
-  Award
+  RefreshCw
 } from "lucide-react";
 
 export default function Home() {
@@ -37,7 +28,6 @@ export default function Home() {
     screenReaderMessage,
     chatMessages,
     sendChatMessage,
-    isSpeaking,
     connectGeminiLive,
     disconnectGeminiLive
   } = useApp();
@@ -276,6 +266,7 @@ export default function Home() {
                     >
                       {!isUser && (
                         <div className="h-7 w-7 rounded-full overflow-hidden bg-neutral-900 shrink-0 border border-neutral-800">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src="/women_wellness_coach.png"
                             alt="Companion Representative Avatar"
@@ -495,7 +486,7 @@ export default function Home() {
                   </div>
 
                   <p className="text-[11px] text-neutral-400 italic font-medium leading-relaxed pt-0.5">
-                    "{getWellnessMessage(state.burnout_risk_index)}"
+                    &quot;{getWellnessMessage(state.burnout_risk_index)}&quot;
                   </p>
                 </div>
 

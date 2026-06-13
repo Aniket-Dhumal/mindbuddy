@@ -4,6 +4,12 @@ import React, { createContext, useContext, useState, useEffect, useRef } from "r
 
 export type ExamTarget = "JEE_ADVANCED" | "NEET_UG" | "CAT" | "UPSC";
 
+let globalMessageCounter = 0;
+const generateMessageId = () => {
+  globalMessageCounter++;
+  return `msg-${Date.now()}-${globalMessageCounter}`;
+};
+
 export interface SystemState {
   student_id: string;
   exam_target: ExamTarget;
@@ -57,7 +63,7 @@ interface AppContextType {
   // Custom Voice Selection
   companionVoiceURI: string;
   setCompanionVoiceURI: (uri: string) => void;
-  availableVoices: any[];
+  availableVoices: SpeechSynthesisVoice[];
   
   // Simulation Helpers
   triggerMockJournalAnalysis: (journalText: string, exam: ExamTarget) => Promise<void>;
@@ -98,7 +104,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [screenReaderMessage, setScreenReaderMessage] = useState("");
   
   // Custom Voice states
-  const [availableVoices, setAvailableVoices] = useState<any[]>([]);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [companionVoiceURI, setCompanionVoiceURI] = useState<string>("");
 
   useEffect(() => {
@@ -130,18 +136,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [companionVoiceURI]);
 
-  useEffect(() => {
-    // Automatically establish the secure companion voice connection on mount
-    const timer = setTimeout(() => {
-      connectGeminiLive();
-    }, 1000);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, []);
+  // Mount effect moved to the bottom of the component to prevent accessed-before-declaration hoisting rules
   
   // Voice Synthesis and Speech recognition refs
   const mockAudioIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const webSocketRef = useRef<WebSocket | null>(null);
   const accumulatedResponseRef = useRef<string>("");
@@ -279,9 +278,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setIsLiveConnected(false);
       };
 
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to connect websocket:", err);
-      addLiveLog(`Failed to connect: ${err.message || "Connection error"}`);
+      const error = err as Error;
+      addLiveLog(`Failed to connect: ${error.message || "Connection error"}`);
       setIsLiveConnecting(false);
       setIsLiveConnected(false);
     }
@@ -297,71 +297,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addLiveLog("Disengaged companion session. Return to standby.");
   };
 
-  // SPEECH RECOGNITION (STT) CONTROL LOOP
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      if (isMicActive) {
-        addLiveLog("Speech Recognition API is not supported on this browser fallback.");
-        announceToScreenReader("Voice input is not fully supported in this browser. Please type to chat.");
-        setIsMicActive(false);
-      }
-      return;
-    }
-
-    if (isMicActive) {
-      // Silence companion before speaking to prevent echoing
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-      setIsSpeaking(false);
-      setMouthOpenness(0.1);
-
-      const recog = new SpeechRecognition();
-      recog.continuous = false;
-      recog.interimResults = false;
-      recog.lang = "en-IN"; // Tailored for Indian English accents
-
-      recog.onstart = () => {
-        addLiveLog("Microphone is now transcribing speech...");
-        announceToScreenReader("Microphone active. Speak now.");
-      };
-
-      recog.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        addLiveLog(`Heard from user voice: "${transcript}"`);
-        if (transcript.trim()) {
-          sendChatMessage(transcript);
-        }
-      };
-
-      recog.onerror = (err: any) => {
-        console.warn("Speech Recognition error:", err);
-        addLiveLog(`Voice input standby or error: ${err.error || "no speech detected"}`);
-        setIsMicActive(false);
-      };
-
-      recog.onend = () => {
-        addLiveLog("Voice recognition connection closed.");
-        setIsMicActive(false);
-      };
-
-      recognitionRef.current = recog;
-      try {
-        recog.start();
-      } catch (err) {
-        console.error("Failed to start speech recognition:", err);
-      }
-    } else {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch (e) {}
-        recognitionRef.current = null;
-      }
-    }
-  }, [isMicActive]);
+  // SPEECH RECOGNITION (STT) CONTROL LOOP moved to bottom of component body
 
   // VOICE SYNTHESIS + LIP-SYNC (TTS) ANIMATOR
   const speakAndAnimateMouth = (text: string) => {
@@ -401,7 +337,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           tick++;
           // Generate wave amplitude to open/close mouth
           const baseAmp = Math.sin(tick * 0.4) * 0.35 + 0.35;
-          const noise = Math.random() * 0.25;
+          const noise = (Math.sin(tick * 1.5) + 1) * 0.125;
           const openness = Math.max(0.05, Math.min(1.0, baseAmp + noise));
 
           // Introduce pause slots for realistic word-gap emulation
@@ -440,7 +376,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       let tick = 0;
       mockAudioIntervalRef.current = setInterval(() => {
         tick++;
-        const openness = Math.sin(tick * 0.4) * 0.35 + 0.35 + Math.random() * 0.2;
+        const openness = Math.sin(tick * 0.4) * 0.35 + 0.35 + ((tick % 5) / 25);
         if (tick % 10 < 2) {
           setMouthOpenness(0.05);
         } else {
@@ -465,7 +401,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // Post User Bubble
     const userMsg: ChatMessage = {
-      id: Math.random().toString(),
+      id: generateMessageId(),
       sender: "user",
       text: text.trim(),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -524,7 +460,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       // Add Companion bubble
       const companionMsg: ChatMessage = {
-        id: Math.random().toString(),
+        id: generateMessageId(),
         sender: "companion",
         text: reply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -535,7 +471,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Trigger spoken synthesis & synchronized lip sync
       speakAndAnimateMouth(reply);
 
-    } catch (err: any) {
+    } catch (err) {
       console.error("API Chat call failed, falling back locally:", err);
       addLiveLog("Gemini Chat API unreachable, activating local rule-based response twin.");
       setIsLiveConnecting(false);
@@ -543,7 +479,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const reply = GenerateChatResponseFallbackNLP(text);
       
       const companionMsg: ChatMessage = {
-        id: Math.random().toString(),
+        id: generateMessageId(),
         sender: "companion",
         text: reply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -705,6 +641,90 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         window.speechSynthesis.cancel();
       }
     };
+  }, []);
+
+  // SPEECH RECOGNITION (STT) CONTROL LOOP
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const SpeechRecognition = (window as typeof window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).SpeechRecognition || (window as typeof window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      if (isMicActive) {
+        setTimeout(() => {
+          addLiveLog("Speech Recognition API is not supported on this browser fallback.");
+          announceToScreenReader("Voice input is not fully supported in this browser. Please type to chat.");
+          setIsMicActive(false);
+        }, 0);
+      }
+      return;
+    }
+
+    if (isMicActive) {
+      // Silence companion before speaking to prevent echoing
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      setTimeout(() => {
+        setIsSpeaking(false);
+        setMouthOpenness(0.1);
+      }, 0);
+
+      const recog = new SpeechRecognition();
+      recog.continuous = false;
+      recog.interimResults = false;
+      recog.lang = "en-IN"; // Tailored for Indian English accents
+
+      recog.onstart = () => {
+        addLiveLog("Microphone is now transcribing speech...");
+        announceToScreenReader("Microphone active. Speak now.");
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recog.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        addLiveLog(`Heard from user voice: "${transcript}"`);
+        if (transcript.trim()) {
+          sendChatMessage(transcript);
+        }
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recog.onerror = (err: any) => {
+        console.warn("Speech Recognition error:", err);
+        addLiveLog(`Voice input standby or error: ${err.error || "no speech detected"}`);
+        setIsMicActive(false);
+      };
+
+      recog.onend = () => {
+        addLiveLog("Voice recognition connection closed.");
+        setIsMicActive(false);
+      };
+
+      recognitionRef.current = recog;
+      try {
+        recog.start();
+      } catch (err) {
+        console.error("Failed to start speech recognition:", err);
+      }
+    } else {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+        recognitionRef.current = null;
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMicActive]);
+
+  useEffect(() => {
+    // Automatically establish the secure companion voice connection on mount
+    const timer = setTimeout(() => {
+      connectGeminiLive();
+    }, 1000);
+    return () => {
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
