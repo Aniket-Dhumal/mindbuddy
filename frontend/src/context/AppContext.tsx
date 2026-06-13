@@ -646,7 +646,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // SPEECH RECOGNITION (STT) CONTROL LOOP
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const SpeechRecognition = (window as typeof window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).SpeechRecognition || (window as typeof window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRecognition = ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) as any;
     if (!SpeechRecognition) {
       if (isMicActive) {
         setTimeout(() => {
