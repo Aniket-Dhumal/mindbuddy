@@ -5,19 +5,18 @@ import { useApp, ExamTarget } from "../context/AppContext";
 import ThreeCanvas from "../components/ThreeCanvas";
 import AudioAnalyzer from "../components/AudioAnalyzer";
 import { 
-  BookOpen, 
-  Brain, 
-  Sparkles, 
   Heart, 
+  Sparkles, 
   Send, 
-  RefreshCw, 
-  AlertTriangle, 
-  Activity, 
-  Award,
-  Terminal,
+  Compass, 
+  ShieldCheck, 
+  User, 
+  Smile, 
+  Zap, 
+  BookOpen,
+  ArrowRight,
   HelpCircle,
-  CheckCircle2,
-  Lock
+  Activity
 } from "lucide-react";
 
 export default function Home() {
@@ -25,11 +24,9 @@ export default function Home() {
     state,
     isLiveConnected,
     isLiveConnecting,
-    liveLogs,
-    clearLiveLogs,
-    screenReaderMessage,
     triggerMockJournalAnalysis,
     triggerMockLiveResponse,
+    screenReaderMessage,
   } = useApp();
 
   const [journalInput, setJournalInput] = useState("");
@@ -43,28 +40,34 @@ export default function Home() {
     setIsSubmitting(true);
     triggerMockJournalAnalysis(journalInput, examTarget);
     
-    // Simulate low latency backend turnaround
+    // Simulate natural response transition
     setTimeout(() => {
       setIsSubmitting(false);
     }, 1200);
   };
 
-  const getBurnoutRiskColor = (index: number) => {
-    if (index >= 0.6) return "from-rose-500 to-red-500 bg-rose-500 border-rose-500 text-rose-300";
-    if (index >= 0.35) return "from-amber-400 to-orange-500 bg-amber-400 border-amber-400 text-amber-300";
-    return "from-cyan-400 to-emerald-400 bg-cyan-400 border-cyan-400 text-cyan-300";
-  };
+  // Convert exam target codes to friendly, student-facing titles
+  const examPills: { value: ExamTarget; label: string }[] = [
+    { value: "JEE_ADVANCED", label: "JEE Main & Advanced" },
+    { value: "NEET_UG", label: "NEET UG Entrance" },
+    { value: "CAT", label: "CAT Management" },
+    { value: "UPSC", label: "UPSC Civil Services" }
+  ];
 
-  const getBurnoutRiskLabel = (index: number) => {
-    if (index === 0) return "Awaiting Entry Analysis";
-    if (index >= 0.6) return "HIGH BURNOUT RISK DETECTED (DANGER)";
-    if (index >= 0.35) return "MODERATE STRESS OVERLOAD (WARNING)";
-    return "SAFE COGNITIVE BALANCE (NORMAL)";
+  // Mind Peace / Calm calculation (100% is maximum peace, decreases as burnout risk increases)
+  const mindPeacePercent = Math.max(0, Math.min(100, Math.round((1 - state.burnout_risk_index) * 100)));
+
+  // Friendly feedback messages based on stress/burnout scores
+  const getWellnessMessage = (index: number) => {
+    if (index === 0) return "Write your first entry to calibrate your wellness companion.";
+    if (index >= 0.6) return "You seem to be carrying a heavy academic load right now. Let's make time to rest.";
+    if (index >= 0.35) return "Your stress level is elevated. Taking a short breathing break could help clear your mind.";
+    return "You are maintaining a wonderful mental balance! Keep up this mindful routine.";
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 font-sans flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200">
-      {/* 2. Dynamic Accessibility Screen Reader Announcement Node */}
+    <div className="min-h-screen bg-[#EEF2FF] text-slate-800 font-sans flex flex-col selection:bg-[#9F9FFF]/30 selection:text-[#6366F1]">
+      {/* Hidden ARIA Screen Reader Announcement Node */}
       <div 
         id="sr-announcement-utility"
         className="sr-only" 
@@ -75,335 +78,351 @@ export default function Home() {
         {screenReaderMessage}
       </div>
 
-      {/* Accessible Header Navigation */}
-      <header className="border-b border-neutral-800/80 bg-neutral-900/40 backdrop-blur-md px-6 py-4 sticky top-0 z-50 shadow-md">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      {/* Cozy, student-friendly Navigation Header */}
+      <header className="px-6 py-4 bg-white/40 backdrop-blur-xl border-b border-white/60 sticky top-0 z-50 shadow-sm transition-all duration-300">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-purple-600 flex items-center justify-center shadow-lg shadow-cyan-500/10">
-              <Brain className="h-5 w-5 text-neutral-950 stroke-[2.5]" />
+            <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-[#9F9FFF] to-[#E8A5FF] flex items-center justify-center shadow-md shadow-[#9F9FFF]/20">
+              <Smile className="h-5.5 w-5.5 text-white stroke-[2.5]" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-neutral-50 via-cyan-300 to-purple-400 bg-clip-text text-transparent">
-                MINDBUDDY
+              <h1 className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-[#6366F1] to-[#D946EF] bg-clip-text text-transparent">
+                MindBuddy
               </h1>
-              <p className="text-[10px] text-neutral-400 tracking-widest uppercase font-semibold">
-                AI student wellness companion
+              <p className="text-[10px] text-slate-400 tracking-wider uppercase font-bold">
+                My Student Wellness Space
               </p>
             </div>
           </div>
 
-          {/* Secure student session indicator card */}
-          <div className="flex items-center gap-3 bg-neutral-950/80 border border-neutral-800/80 rounded-full px-4 py-1.5 shadow-inner">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-400" aria-hidden="true" />
-            <span className="text-xs text-neutral-300 font-medium tracking-wide">
-              ID: <span className="font-mono text-cyan-400 font-semibold">{state.student_id}</span>
-            </span>
-            <span className="text-neutral-700 font-bold">|</span>
-            <span className="text-xs text-neutral-300 font-medium flex items-center space-x-1">
-              <Lock className="h-3 w-3 text-neutral-400 mr-0.5" aria-hidden="true" />
-              <span>AES-256 SECURED</span>
+          {/* Secure and friendly privacy label */}
+          <div className="flex items-center gap-2.5 bg-white/70 border border-white/90 rounded-full px-4 py-1.5 shadow-sm">
+            <ShieldCheck className="h-4 w-4 text-[#10B981]" />
+            <span className="text-xs font-semibold text-slate-600">
+              Your Safe & Secure Space
             </span>
           </div>
         </div>
       </header>
 
-      {/* Main dashboard content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* Main Student Portal Dashboard */}
+      <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* LEFT COLUMN: 3D Twin Viewport, Soundwave Mic Analyzer, Live Terminal logs */}
+        {/* LEFT COLUMN: Check-In Card & Daily Boosters */}
+        <section className="lg:col-span-7 flex flex-col space-y-6 w-full">
+          
+          {/* Wellness Check-In Card with Sunset Landscape Banner */}
+          <div className="rounded-3xl border border-white/80 bg-white/60 backdrop-blur-xl overflow-hidden shadow-lg transition-all duration-300">
+            
+            {/* Sunset Header Backdrop */}
+            <div className="relative h-44 w-full overflow-hidden bg-[#9F9FFF]">
+              {/* Sunset Landscape Image overlay */}
+              <img 
+                src="/sunset_landscape.png" 
+                alt="Beautiful, calming sunset over standard mountain range illustration" 
+                className="absolute inset-0 h-full w-full object-cover opacity-80"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent" />
+              
+              {/* Interactive Student Welcome overlay */}
+              <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10 text-white">
+                <div className="bg-black/25 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-[#E8A5FF]" />
+                  <span>Check In Account</span>
+                </div>
+                <span className="text-[10px] font-bold bg-white/25 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
+                  Ready
+                </span>
+              </div>
+
+              <div className="absolute bottom-4 left-4 z-10 text-white">
+                <h2 className="text-xl font-black tracking-tight drop-shadow-sm">Good Morning, Student!</h2>
+                <p className="text-xs font-medium text-slate-100/90 drop-shadow-xs">How is your preparation journey treating you today?</p>
+              </div>
+            </div>
+
+            {/* Check-In Form Body */}
+            <form onSubmit={handleSubmitJournal} className="p-6 space-y-5">
+              
+              {/* Exam Target Flat Pill Selectors */}
+              <div className="flex flex-col space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Target Examination Focus:
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {examPills.map((pill) => {
+                    const isSelected = examTarget === pill.value;
+                    return (
+                      <button
+                        key={pill.value}
+                        type="button"
+                        onClick={() => setExamTarget(pill.value)}
+                        className={`px-3 py-2.5 rounded-2xl text-xs font-bold transition-all duration-300 border cursor-pointer text-center ${
+                          isSelected
+                            ? "bg-gradient-to-tr from-[#6366F1] to-[#8B5CF6] text-white shadow-md shadow-[#6366F1]/15 border-transparent scale-98"
+                            : "bg-white/80 hover:bg-white text-slate-600 border-slate-100 hover:border-slate-200"
+                        }`}
+                      >
+                        {pill.label.split(" ")[0]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Journal Textarea */}
+              <div className="flex flex-col space-y-2">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="journal-input" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    My Daily Reflections:
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-bold bg-slate-100 px-2 py-0.5 rounded-full">
+                    {journalInput.length} chars
+                  </span>
+                </div>
+
+                <div className="relative">
+                  <textarea
+                    id="journal-input"
+                    value={journalInput}
+                    onChange={(e) => setJournalInput(e.target.value)}
+                    placeholder="Pour your thoughts out here... Talk about test scores, study fatigue, backlog concerns, or whatever is on your mind today."
+                    className="w-full h-36 rounded-2xl border border-slate-100 bg-white/70 p-4 text-sm text-slate-700 leading-relaxed placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#9F9FFF]/80 focus:border-transparent transition-all resize-none shadow-inner"
+                    required
+                  />
+
+                  {/* Submission Bubbly Action Button with plus/heart icon overlay */}
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !journalInput.trim()}
+                    className={`absolute bottom-3 right-3 h-11 w-11 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300 cursor-pointer ${
+                      isSubmitting || !journalInput.trim()
+                        ? "bg-slate-100 text-slate-300 cursor-not-allowed border border-slate-200/50 shadow-none"
+                        : "bg-gradient-to-tr from-[#6366F1] to-[#D946EF] text-white hover:shadow-indigo-500/20 hover:scale-105 active:scale-95"
+                    }`}
+                    aria-label={isSubmitting ? "Deeply analyzing..." : "Analyze my feelings and update recommendations"}
+                  >
+                    {isSubmitting ? (
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    ) : (
+                      <Send className="h-4.5 w-4.5 stroke-[2.5]" />
+                    )}
+                  </button>
+                </div>
+
+                <p className="text-[10px] text-slate-400 leading-relaxed flex items-center gap-1.5 pl-1">
+                  <HelpCircle className="h-3.5 w-3.5 text-[#9F9FFF] shrink-0" />
+                  Your notes are parsed in secure memory instantly to deliver supportive wellness boosters.
+                </p>
+              </div>
+
+            </form>
+          </div>
+
+          {/* Daily Booster Cards - Cozy peach & teal gradients */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {/* Mindfulness Booster - GIVE A BOOST */}
+            <div className="rounded-3xl border border-white/80 bg-gradient-to-br from-[#FFF5F1] to-[#FFF0F3] p-5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between space-y-4">
+              <div className="space-y-2.5">
+                <div className="flex items-center space-x-2">
+                  <div className="h-8 w-8 rounded-xl bg-orange-100 text-orange-500 flex items-center justify-center">
+                    <Heart className="h-4 w-4 fill-current stroke-[2.5]" />
+                  </div>
+                  <h4 className="text-xs font-bold text-orange-600 uppercase tracking-wider">
+                    Mindfulness Booster
+                  </h4>
+                </div>
+                <h3 className="text-sm font-bold text-slate-800 leading-tight">My Breathing Practice</h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {state.mindfulness_exercise_assigned || "Let's check in! Share your thoughts in your journal above to unlock a custom breathing and relaxation guide."}
+                </p>
+              </div>
+              {state.mindfulness_exercise_assigned && (
+                <div className="inline-flex items-center text-[10px] font-bold text-orange-600 bg-orange-100/60 px-2.5 py-1 rounded-lg w-max">
+                  Ready to practice
+                </div>
+              )}
+            </div>
+
+            {/* Coping Strategy Booster - GET A BOOST */}
+            <div className="rounded-3xl border border-white/80 bg-gradient-to-br from-[#EBFDF9] to-[#F0FDF4] p-5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between space-y-4">
+              <div className="space-y-2.5">
+                <div className="flex items-center space-x-2">
+                  <div className="h-8 w-8 rounded-xl bg-teal-100 text-[#0D9488] flex items-center justify-center">
+                    <Compass className="h-4 w-4 stroke-[2.5]" />
+                  </div>
+                  <h4 className="text-xs font-bold text-[#0D9488] uppercase tracking-wider">
+                    Coping Guide
+                  </h4>
+                </div>
+                <h3 className="text-sm font-bold text-slate-800 leading-tight">My Action Strategy</h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {state.coping_strategy_payload || "Your gentle custom coping strategy recommendations will display here to guide you through test anxiety."}
+                </p>
+              </div>
+              {state.coping_strategy_payload && (
+                <div className="inline-flex items-center text-[10px] font-bold text-teal-700 bg-teal-100/60 px-2.5 py-1 rounded-lg w-max">
+                  Unlocked Strategy
+                </div>
+              )}
+            </div>
+
+          </div>
+
+        </section>
+
+        {/* RIGHT COLUMN: Digital Companion, Voice triggers & Stress indexes */}
         <section className="lg:col-span-5 flex flex-col space-y-6 w-full">
           
-          {/* Three.js viewport */}
-          <div className="h-[360px] w-full">
+          {/* Animated 3D Companion Viewport Card */}
+          <div className="w-full">
             <ThreeCanvas />
           </div>
 
-          {/* Audio Analyzer Panel */}
-          <AudioAnalyzer />
-
-          {/* Gemini Live Simulator Controls & Terminal Logs */}
-          <div className="rounded-2xl border border-neutral-800/80 bg-neutral-900/40 p-5 backdrop-blur-md shadow-xl flex flex-col space-y-4">
+          {/* Voice Activation Panel (Audio Analyzer and Real-Time controls) */}
+          <div className="rounded-3xl border border-white/80 bg-white/60 backdrop-blur-xl p-5 shadow-lg flex flex-col space-y-4 transition-all duration-300">
+            
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Sparkles className="h-4 w-4 text-purple-400" />
-                <h3 className="text-sm font-semibold tracking-wide text-neutral-100">
-                  Gemini Live Multi-modal Stream
+                <Sparkles className="h-4.5 w-4.5 text-[#D946EF]" />
+                <h3 className="text-sm font-bold tracking-tight text-slate-800">
+                  Instant Voice Support
                 </h3>
               </div>
               
-              <div className="flex items-center space-x-1.5 text-[10px] uppercase font-bold tracking-wider">
+              <div className="flex items-center space-x-1.5 text-[9px] uppercase font-bold tracking-wider">
                 {isLiveConnected ? (
-                  <span className="text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    LIVE-CONNECT
+                  <span className="text-[#10B981] flex items-center gap-1 bg-[#10B981]/10 px-2 py-0.5 rounded border border-[#10B981]/25">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse" />
+                    Companion Listening
                   </span>
                 ) : isLiveConnecting ? (
-                  <span className="text-cyan-400 flex items-center gap-1 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping" />
-                    CONNECTING...
+                  <span className="text-[#6366F1] flex items-center gap-1 bg-[#6366F1]/10 px-2 py-0.5 rounded border border-[#6366F1]/25">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#6366F1] animate-ping" />
+                    Answering...
                   </span>
                 ) : (
-                  <span className="text-neutral-400 flex items-center gap-1 bg-neutral-800 px-2 py-0.5 rounded border border-neutral-700">
-                    STANDBY
+                  <span className="text-slate-400 flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                    Standby
                   </span>
                 )}
               </div>
             </div>
 
-            <p className="text-xs text-neutral-350 leading-relaxed">
-              Activate real-time multi-modal responses. The simulated stream maps synthesized voice amplitude fluctuations onto the mouth coordinates of the 3D twin avatar mesh.
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Need a quick cognitive break or encouraging words? Trigger one of our mindful audio pathways with your companion:
             </p>
 
-            {/* Simulated Live Triggers */}
+            {/* Quick Live presets styled beautifully */}
             <div className="grid grid-cols-3 gap-2">
               <button
-                id="btn-trigger-breathing"
+                id="btn-voice-breathing"
                 onClick={() => triggerMockLiveResponse("breathing")}
                 disabled={isLiveConnecting}
-                className="rounded-xl border border-purple-500/30 bg-purple-950/20 px-3 py-2.5 text-center text-xs font-semibold text-purple-300 hover:bg-purple-900/30 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-neutral-900 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Simulate Gemini response for box breathing exercises"
+                className="rounded-xl border border-purple-100 bg-purple-50/70 hover:bg-purple-100 px-2.5 py-3 text-center text-xs font-bold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Simulate audio breathing support"
               >
-                BREATHING
+                BREATHE
               </button>
               <button
-                id="btn-trigger-grounding"
+                id="btn-voice-grounding"
                 onClick={() => triggerMockLiveResponse("grounding")}
                 disabled={isLiveConnecting}
-                className="rounded-xl border border-cyan-500/30 bg-cyan-950/20 px-3 py-2.5 text-center text-xs font-semibold text-cyan-300 hover:bg-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-neutral-900 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Simulate Gemini response for sensory grounding exercises"
+                className="rounded-xl border border-blue-100 bg-blue-50/70 hover:bg-blue-100 px-2.5 py-3 text-center text-xs font-bold text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Simulate sensory grounding support"
               >
-                GROUNDING
+                GROUND
               </button>
               <button
-                id="btn-trigger-encouragement"
+                id="btn-voice-encouragement"
                 onClick={() => triggerMockLiveResponse("encouragement")}
                 disabled={isLiveConnecting}
-                className="rounded-xl border border-rose-500/30 bg-rose-950/20 px-3 py-2.5 text-center text-xs font-semibold text-rose-300 hover:bg-rose-900/30 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 focus:ring-offset-neutral-900 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Simulate Gemini response for encouragement and academic stress support"
+                className="rounded-xl border border-rose-100 bg-rose-50/70 hover:bg-rose-100 px-2.5 py-3 text-center text-xs font-bold text-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-offset-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Simulate encouraging talk"
               >
                 ENCOURAGE
               </button>
             </div>
 
-            {/* WebSocket Console Output */}
-            <div className="flex flex-col space-y-1.5">
-              <div className="flex items-center justify-between text-xs text-neutral-350">
-                <span className="flex items-center gap-1 font-semibold">
-                  <Terminal className="h-3.5 w-3.5" />
-                  Live Channel Output Logs
-                </span>
-                {liveLogs.length > 0 && (
-                  <button
-                    id="btn-clear-logs"
-                    onClick={clearLiveLogs}
-                    className="text-[10px] text-cyan-400 font-bold hover:underline uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded px-1"
-                    aria-label="Clear active channel output logs"
-                  >
-                    Clear Terminal
-                  </button>
-                )}
-              </div>
-              <div 
-                className="h-28 w-full overflow-y-auto rounded-xl bg-neutral-950 border border-neutral-800/80 p-3.5 font-mono text-[10px] text-neutral-400 flex flex-col-reverse space-y-reverse gap-1.5 focus:outline-none focus:ring-1 focus:ring-neutral-700"
-                tabIndex={0}
-                aria-label="WebSocket Connection Activity Terminal"
-              >
-                {liveLogs.length === 0 ? (
-                  <span className="text-neutral-500 italic">[Standby] Awaiting audio inputs or simulation trigger commands...</span>
-                ) : (
-                  liveLogs.map((log, i) => (
-                    <span key={i} className="leading-relaxed block border-l border-neutral-800 pl-2">
-                      <span className="text-neutral-500">SYS:</span> {log}
-                    </span>
-                  ))
-                )}
-              </div>
+            {/* Real-time Web Audio Microphone Analyzer Integration */}
+            <div className="border-t border-slate-100/80 pt-3">
+              <AudioAnalyzer />
             </div>
 
           </div>
-        </section>
 
-        {/* RIGHT COLUMN: Open-Ended Journal, Stress Index Meter, Stress triggers chip list, Strategy logs */}
-        <section className="lg:col-span-7 flex flex-col space-y-6 w-full">
-          
-          {/* Accessible Form Journal Input */}
-          <form 
-            id="student-journal-form"
-            onSubmit={handleSubmitJournal}
-            className="rounded-2xl border border-neutral-800/80 bg-neutral-900/40 p-5 backdrop-blur-md shadow-xl flex flex-col space-y-4"
-          >
-            <div className="flex items-center space-x-2.5">
-              <div className="h-8 w-8 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400">
-                <BookOpen className="h-4.5 w-4.5" />
+          {/* Real-Time Stress Diagnostics & CalmMeter Progress Card */}
+          <div className="rounded-3xl border border-white/80 bg-white/60 backdrop-blur-xl p-5 shadow-lg flex flex-col space-y-4.5 transition-all duration-300">
+            
+            <div className="flex items-center space-x-2.5 pb-2.5 border-b border-slate-100">
+              <div className="h-8 w-8 rounded-xl bg-violet-100 flex items-center justify-center text-[#6366F1]">
+                <Activity className="h-4.5 w-4.5" />
               </div>
               <div>
-                <h2 className="text-base font-bold tracking-tight text-neutral-100">
-                  Open-Ended Academic Journal
-                </h2>
-                <p className="text-xs text-neutral-350">
-                  Write freely about mock test fatigue, backlogs, parents, or exams.
-                </p>
+                <h3 className="text-sm font-bold text-slate-800">My Mental Well-Being Metrics</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Mind Balance Tracker</p>
               </div>
             </div>
 
-            {/* Grouped fieldset with label bindings */}
-            <div className="space-y-4">
-              
-              {/* Exam Target Selection */}
-              <div className="flex flex-col space-y-1.5">
-                <label 
-                  htmlFor="exam-target-select" 
-                  id="label-exam-target"
-                  className="text-xs font-semibold text-neutral-300 tracking-wide flex items-center justify-between"
-                >
-                  <span>Select Target Examination Scope:</span>
-                  <span className="text-[10px] text-purple-400 font-bold font-mono">FR-1.2 COMPLIANT</span>
-                </label>
-                <div className="relative">
-                  <select
-                    id="exam-target-select"
-                    value={examTarget}
-                    onChange={(e) => setExamTarget(e.target.value as ExamTarget)}
-                    className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/80 focus:ring-offset-2 focus:ring-offset-neutral-900 transition-all appearance-none cursor-pointer"
-                    aria-labelledby="label-exam-target"
-                  >
-                    <option value="JEE_ADVANCED">JEE Advanced (Engineering Aspirant)</option>
-                    <option value="NEET_UG">NEET UG (Medical Aspirant)</option>
-                    <option value="CAT">CAT (Management Aspirant)</option>
-                    <option value="UPSC">UPSC Civil Services (Indian Bureaucracy)</option>
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400 border-l border-neutral-800 pl-3">
-                    <Award className="h-4 w-4" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Journal Entry Textarea */}
-              <div className="flex flex-col space-y-1.5">
-                <div className="flex items-center justify-between text-xs text-neutral-350">
-                  <label 
-                    htmlFor="journal-textarea" 
-                    className="font-semibold text-neutral-300 tracking-wide"
-                  >
-                    Write your journal entry below:
-                  </label>
-                  <span className="font-mono text-[10px]">
-                    {journalInput.length} chars
-                  </span>
-                </div>
-                
-                <textarea
-                  id="journal-textarea"
-                  value={journalInput}
-                  onChange={(e) => setJournalInput(e.target.value)}
-                  placeholder="Today, my mock test scores dropped, and I feel overwhelmed by the biology backlog... I am worried about the syllabus."
-                  className="w-full h-32 rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-sm text-neutral-200 leading-relaxed placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/80 focus:ring-offset-2 focus:ring-offset-neutral-900 transition-all resize-none"
-                  aria-describedby="journal-hint"
-                  required
-                />
-                
-                <span id="journal-hint" className="text-[10px] text-neutral-400 flex items-center gap-1.5 leading-relaxed bg-neutral-950/40 p-2 rounded-lg border border-neutral-800/40">
-                  <HelpCircle className="h-3.5 w-3.5 text-cyan-400/80 shrink-0" />
-                  Your entry is encrypted in memory immediately. AI models will extract 'hidden_stress_triggers' and calculate 'burnout_risk_index'.
-                </span>
-              </div>
-            </div>
-
-            {/* Submission button */}
-            <button
-              id="journal-submit-button"
-              type="submit"
-              disabled={isSubmitting || !journalInput.trim()}
-              className={`w-full flex items-center justify-center space-x-2 rounded-xl px-5 py-3.5 text-sm font-bold tracking-wider transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/80 focus:ring-offset-2 focus:ring-offset-neutral-900 cursor-pointer ${
-                isSubmitting || !journalInput.trim()
-                  ? "bg-neutral-800 text-neutral-500 border border-neutral-800 cursor-not-allowed"
-                  : "bg-cyan-500 text-neutral-950 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.35)]"
-              }`}
-              aria-label={isSubmitting ? "Processing journal analysis" : "Analyze journal entry stress levels"}
-            >
-              {isSubmitting ? (
-                <>
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                  <span>EXTRACTING COGNITIVE METRICS...</span>
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4" />
-                  <span>ANALYZE STRESS & BURNOUT INDEX</span>
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* AI Clinical Sentiment Feedback Section */}
-          <div className="rounded-2xl border border-neutral-800/80 bg-neutral-900/40 p-5 backdrop-blur-md shadow-xl flex flex-col space-y-5">
-            <div className="flex items-center justify-between border-b border-neutral-800/80 pb-3">
-              <div className="flex items-center space-x-2.5">
-                <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
-                  <Activity className="h-4.5 w-4.5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold tracking-tight text-neutral-100">
-                    Clinical Wellness Diagnostics
-                  </h3>
-                  <p className="text-[10px] text-neutral-400 uppercase tracking-widest font-semibold">
-                    Real-time AI Sentiment Metrics
-                  </p>
-                </div>
-              </div>
-              <span className="font-mono text-[10px] text-purple-400 font-bold bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
-                FR-2.2 COMPLIANT
-              </span>
-            </div>
-
-            {/* 4. Burnout Risk Index (Progress Bar Meter) */}
+            {/* Burnout/Stress Index Translated as "Calm Peace Meter" */}
             <div className="space-y-2">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs font-semibold">
-                <span className="text-neutral-300">Burnout Risk Index (burnout_risk_index):</span>
-                <span className={`font-mono text-[11px] tracking-wider uppercase ${state.burnout_risk_index > 0 ? getBurnoutRiskColor(state.burnout_risk_index) : 'text-neutral-400'}`}>
-                  {getBurnoutRiskLabel(state.burnout_risk_index)}
+              <div className="flex items-center justify-between text-xs font-bold text-slate-500">
+                <span>MY CALM LEVEL (PEACE METER):</span>
+                <span className={`text-[10px] tracking-wide bg-white px-2.5 py-0.5 rounded-full shadow-xs border ${
+                  mindPeacePercent < 45 ? 'text-red-500 border-red-100' : mindPeacePercent < 70 ? 'text-orange-500 border-orange-100' : 'text-emerald-500 border-emerald-100'
+                }`}>
+                  {mindPeacePercent}% Peace
                 </span>
               </div>
 
-              <div className="flex items-center space-x-3.5">
-                {/* Visual accessible progressbar element */}
+              {/* Progress bar container */}
+              <div className="flex items-center space-x-3">
                 <div 
                   id="burnout-progress-container"
-                  className="relative h-4 flex-1 overflow-hidden rounded-full bg-neutral-950 p-[3px] border border-neutral-800"
+                  className="relative h-4 flex-1 overflow-hidden rounded-full bg-slate-100 p-0.5 border border-slate-200/50 shadow-inner"
                   role="progressbar"
-                  aria-valuenow={Math.round(state.burnout_risk_index * 100)}
+                  aria-valuenow={mindPeacePercent}
                   aria-valuemin={0}
                   aria-valuemax={100}
-                  aria-valuetext={`Burnout risk index is at ${(state.burnout_risk_index * 100).toFixed(0)}%`}
+                  aria-valuetext={`My Calm Peace index is at ${mindPeacePercent}%`}
                 >
                   <div
-                    className={`h-full rounded-full bg-gradient-to-r transition-all duration-500 ${getBurnoutRiskColor(state.burnout_risk_index)}`}
-                    style={{ width: `${state.burnout_risk_index * 100}%` }}
+                    className={`h-full rounded-full transition-all duration-500 ease-out bg-gradient-to-r ${
+                      mindPeacePercent < 45 
+                        ? "from-red-400 to-rose-400" 
+                        : mindPeacePercent < 70 
+                        ? "from-amber-400 to-orange-400" 
+                        : "from-teal-400 to-emerald-400"
+                    }`}
+                    style={{ width: `${mindPeacePercent}%` }}
                   />
                 </div>
-                <span className="font-mono text-sm font-bold text-neutral-100 shrink-0 w-12 text-right">
-                  {(state.burnout_risk_index * 100).toFixed(0)}%
-                </span>
               </div>
+
+              {/* Friendly advice label */}
+              <p className="text-xs text-slate-500 italic leading-relaxed pt-1">
+                "{getWellnessMessage(state.burnout_risk_index)}"
+              </p>
             </div>
 
-            {/* AI Extracted Hidden Stress Triggers (hidden_stress_triggers) */}
-            <div className="space-y-2.5">
-              <h4 className="text-xs font-bold text-neutral-300 tracking-wide uppercase">
-                AI-Extracted Stress Triggers (hidden_stress_triggers):
+            {/* Student-Friendly "Areas of Concern" instead of raw technical triggers */}
+            <div className="space-y-2 pt-1">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                My Active Focus Triggers:
               </h4>
               <div className="flex flex-wrap gap-2">
                 {state.hidden_stress_triggers.length === 0 ? (
-                  <span className="text-xs text-neutral-500 italic leading-relaxed bg-neutral-950/40 px-3 py-1.5 rounded-lg border border-neutral-800/20">
-                    Awaiting open-ended journal analysis to isolate cognitive triggers...
+                  <span className="text-xs text-slate-400 italic bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100/80">
+                    Your triggers are currently clear. Keep reflectively journaling!
                   </span>
                 ) : (
                   state.hidden_stress_triggers.map((trigger, index) => (
                     <div
                       key={index}
-                      className="flex items-center space-x-1.5 rounded-full border border-rose-500/30 bg-rose-500/10 px-3 py-1 text-xs text-rose-300 font-medium"
+                      className="flex items-center space-x-1.5 rounded-xl border border-rose-100 bg-rose-50/60 px-3 py-1.5 text-xs text-rose-700 font-bold"
                     >
-                      <AlertTriangle className="h-3 w-3 text-rose-400" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-rose-400 animate-pulse" />
                       <span>{trigger}</span>
                     </div>
                   ))
@@ -411,58 +430,19 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Multimodal response display cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
-              {/* Assigned Mindfulness Exercise (mindfulness_exercise_assigned) */}
-              <div className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-4 space-y-2 flex flex-col justify-between">
-                <div>
-                  <h4 className="text-xs font-bold text-neutral-300 tracking-wide uppercase flex items-center gap-1.5 mb-1.5">
-                    <Heart className="h-3.5 w-3.5 text-purple-400" />
-                    Mindfulness Assignment:
-                  </h4>
-                  <p className="text-xs text-neutral-350 leading-relaxed min-h-12">
-                    {state.mindfulness_exercise_assigned || "Awaiting stress analysis report..."}
-                  </p>
-                </div>
-                {state.mindfulness_exercise_assigned && (
-                  <div className="text-[9px] uppercase tracking-wider text-purple-400 font-semibold font-mono mt-2 bg-purple-500/5 px-2 py-1 border border-purple-500/10 rounded w-max">
-                    Assigned exercise
-                  </div>
-                )}
-              </div>
-
-              {/* Coping Strategy assigned (coping_strategy_payload) */}
-              <div className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-4 space-y-2 flex flex-col justify-between">
-                <div>
-                  <h4 className="text-xs font-bold text-neutral-300 tracking-wide uppercase flex items-center gap-1.5 mb-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-cyan-400" />
-                    Coping Strategy:
-                  </h4>
-                  <p className="text-xs text-neutral-350 leading-relaxed min-h-12">
-                    {state.coping_strategy_payload || "Awaiting stress analysis report..."}
-                  </p>
-                </div>
-                {state.coping_strategy_payload && (
-                  <div className="text-[9px] uppercase tracking-wider text-cyan-400 font-semibold font-mono mt-2 bg-cyan-500/5 px-2 py-1 border border-cyan-500/10 rounded w-max">
-                    Coping payload
-                  </div>
-                )}
-              </div>
-
-            </div>
-
           </div>
+
         </section>
 
       </main>
 
-      <footer className="border-t border-neutral-800 bg-neutral-950/80 py-6 text-center text-xs text-neutral-500">
-        <p className="tracking-wide">
-          © 2026 MindBuddy Platform • Fully WAI-ARIA and Section 508 Compliant.
+      {/* Simplified, warm, accessible footer */}
+      <footer className="bg-white/40 border-t border-white/60 py-6 text-center text-xs text-slate-400 mt-8">
+        <p className="font-semibold text-slate-500">
+          © 2026 MindBuddy Platform • Safe, Encouraging, Protected Space.
         </p>
-        <p className="text-[10px] text-neutral-600 mt-1 uppercase tracking-widest font-mono">
-          Decoupled Gin-Gonic Backend Ceiling: MaxOpenConns = 25 • Image Size &lt; 25MB
+        <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">
+          Created with care for student wellness
         </p>
       </footer>
     </div>
