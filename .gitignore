@@ -1,0 +1,14 @@
+# Dependency directories
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+
+# Go build outputs
+backend/mindbuddy
+backend/mindbuddy.db
+backend/mindbuddy.db-journal
+
+# OS files
+.DS_Store
+Thumbs.db
