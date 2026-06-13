@@ -39,7 +39,7 @@ interface AppContextType {
   announceToScreenReader: (msg: string) => void;
   
   // Simulation Helpers
-  triggerMockJournalAnalysis: (journalText: string, exam: ExamTarget) => void;
+  triggerMockJournalAnalysis: (journalText: string, exam: ExamTarget) => Promise<void>;
   triggerMockLiveResponse: (presetType: string) => void;
 }
 
@@ -83,61 +83,99 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const clearLiveLogs = () => setLiveLogs([]);
 
-  // Mock Journal Analyzer
-  const triggerMockJournalAnalysis = (journalText: string, exam: ExamTarget) => {
+  // Mock/Actual Journal Analyzer
+  const triggerMockJournalAnalysis = async (journalText: string, exam: ExamTarget): Promise<void> => {
     addLiveLog(`Parsing journal entry for ${exam}...`);
     announceToScreenReader(`Parsing journal entry. Please wait.`);
 
-    // Simple keyword extraction for realistic mock triggers and stress index
-    const lowerText = journalText.toLowerCase();
-    const triggers: string[] = [];
-    let baseRisk = 0.15;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://mindbuddy-backend-106578204542.asia-east1.run.app";
+    try {
+      const response = await fetch(`${apiUrl}/api/journal`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          student_id: state.student_id,
+          exam_target: exam,
+          journal_entry_raw: journalText,
+        }),
+      });
 
-    if (lowerText.includes("mock test") || lowerText.includes("exam") || lowerText.includes("test")) {
-      triggers.push("Mock Test Score Volatility");
-      baseRisk += 0.20;
-    }
-    if (lowerText.includes("sleep") || lowerText.includes("tired") || lowerText.includes("exhausted")) {
-      triggers.push("Sleep Deprivation Fatigue");
-      baseRisk += 0.25;
-    }
-    if (lowerText.includes("family") || lowerText.includes("parent") || lowerText.includes("pressure")) {
-      triggers.push("Interpersonal Performance Pressure");
-      baseRisk += 0.15;
-    }
-    if (lowerText.includes("forget") || lowerText.includes("remember") || lowerText.includes("syllabus")) {
-      triggers.push("Syllabus Overwhelm & Cognitive Overload");
-      baseRisk += 0.20;
-    }
-    if (lowerText.includes("backlog") || lowerText.includes("behind") || lowerText.includes("time")) {
-      triggers.push("Backlog Accumulation Anxiety");
-      baseRisk += 0.15;
-    }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-    if (triggers.length === 0 && journalText.trim().length > 0) {
-      triggers.push("General Academic Apprehension");
-      baseRisk += 0.10;
-    }
+      const data = await response.json();
+      setState((prev) => ({
+        ...prev,
+        journal_entry_raw: data.journal_entry_raw || journalText,
+        exam_target: data.exam_target || exam,
+        hidden_stress_triggers: data.hidden_stress_triggers || [],
+        burnout_risk_index: typeof data.burnout_risk_index === "number" ? data.burnout_risk_index : 0.0,
+        coping_strategy_payload: data.coping_strategy_payload || "",
+        mindfulness_exercise_assigned: data.mindfulness_exercise_assigned || "",
+      }));
 
-    // Ensure the index stays within [0.0, 1.0]
-    const finalRisk = Math.min(Math.max(baseRisk, 0.0), 1.0);
+      const finalRisk = typeof data.burnout_risk_index === "number" ? data.burnout_risk_index : 0.0;
+      const triggers = data.hidden_stress_triggers || [];
+      addLiveLog(`Analysis complete. Risk Index: ${finalRisk.toFixed(2)}. Triggers: ${triggers.join(", ")}`);
+      announceToScreenReader(
+        `Analysis complete. Burnout risk is ${(finalRisk * 100).toFixed(0)} percent. Found ${triggers.length} stress triggers.`
+      );
+    } catch (err) {
+      console.error("Failed to fetch from backend API, falling back to local edge analyzer:", err);
+      addLiveLog(`Backend API unreachable. Running local edge fallback...`);
 
-    // Determine strategy & mindfulness exercise based on triggers
-    let strategy = "Take small structured 5-minute Pomodoro breaks every 45 minutes to refresh cognitive focus.";
-    let mindfulness = "Box Breathing Exercise: Inhale 4s, Hold 4s, Exhale 4s, Hold 4s. Repeat 5 times.";
+      // Simple keyword extraction for realistic mock triggers and stress index
+      const lowerText = journalText.toLowerCase();
+      const triggers: string[] = [];
+      let baseRisk = 0.15;
 
-    if (finalRisk > 0.6) {
-      strategy = "High Burnout Risk Detected. Prioritize an immediate 8-hour sleep cycle, defer minor tasks, and practice grounding.";
-      mindfulness = "5-4-3-2-1 Grounding Technique: Identify 5 things you can see, 4 you can touch, 3 you can hear, 2 you can smell, and 1 you can taste.";
-    } else if (triggers.includes("Sleep Deprivation Fatigue")) {
-      strategy = "Incorporate a 20-minute power nap before 4 PM. Avoid caffeine after 2 PM to reset circadian rhythms.";
-      mindfulness = "Body Scan Meditation: Focus awareness on releasing tension starting from toes up to the scalp.";
-    } else if (triggers.includes("Mock Test Score Volatility")) {
-      strategy = "Review only the wrong answers today. Avoid taking another full-length test within the next 36 hours.";
-      mindfulness = "Anxiety Release: Inhale deeply and exhale with a loud sigh to physically release neck and shoulder tension.";
-    }
+      if (lowerText.includes("mock test") || lowerText.includes("exam") || lowerText.includes("test")) {
+        triggers.push("Mock Test Score Volatility");
+        baseRisk += 0.20;
+      }
+      if (lowerText.includes("sleep") || lowerText.includes("tired") || lowerText.includes("exhausted")) {
+        triggers.push("Sleep Deprivation Fatigue");
+        baseRisk += 0.25;
+      }
+      if (lowerText.includes("family") || lowerText.includes("parent") || lowerText.includes("pressure")) {
+        triggers.push("Interpersonal Performance Pressure");
+        baseRisk += 0.15;
+      }
+      if (lowerText.includes("forget") || lowerText.includes("remember") || lowerText.includes("syllabus")) {
+        triggers.push("Syllabus Overwhelm & Cognitive Overload");
+        baseRisk += 0.20;
+      }
+      if (lowerText.includes("backlog") || lowerText.includes("behind") || lowerText.includes("time")) {
+        triggers.push("Backlog Accumulation Anxiety");
+        baseRisk += 0.15;
+      }
 
-    setTimeout(() => {
+      if (triggers.length === 0 && journalText.trim().length > 0) {
+        triggers.push("General Academic Apprehension");
+        baseRisk += 0.10;
+      }
+
+      // Ensure the index stays within [0.0, 1.0]
+      const finalRisk = Math.min(Math.max(baseRisk, 0.0), 1.0);
+
+      // Determine strategy & mindfulness exercise based on triggers
+      let strategy = "Take small structured 5-minute Pomodoro breaks every 45 minutes to refresh cognitive focus.";
+      let mindfulness = "Box Breathing Exercise: Inhale 4s, Hold 4s, Exhale 4s, Hold 4s. Repeat 5 times.";
+
+      if (finalRisk > 0.6) {
+        strategy = "High Burnout Risk Detected. Prioritize an immediate 8-hour sleep cycle, defer minor tasks, and practice grounding.";
+        mindfulness = "5-4-3-2-1 Grounding Technique: Identify 5 things you can see, 4 you can touch, 3 you can hear, 2 you can smell, and 1 you can taste.";
+      } else if (triggers.includes("Sleep Deprivation Fatigue")) {
+        strategy = "Incorporate a 20-minute power nap before 4 PM. Avoid caffeine after 2 PM to reset circadian rhythms.";
+        mindfulness = "Body Scan Meditation: Focus awareness on releasing tension starting from toes up to the scalp.";
+      } else if (triggers.includes("Mock Test Score Volatility")) {
+        strategy = "Review only the wrong answers today. Avoid taking another full-length test within the next 36 hours.";
+        mindfulness = "Anxiety Release: Inhale deeply and exhale with a loud sigh to physically release neck and shoulder tension.";
+      }
+
       setState((prev) => ({
         ...prev,
         journal_entry_raw: journalText,
@@ -148,11 +186,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         mindfulness_exercise_assigned: mindfulness,
       }));
 
-      addLiveLog(`Analysis complete. Risk Index: ${finalRisk.toFixed(2)}. Triggers: ${triggers.join(", ")}`);
+      addLiveLog(`Edge analysis complete. Risk Index: ${finalRisk.toFixed(2)}. Triggers: ${triggers.join(", ")}`);
       announceToScreenReader(
-        `Analysis complete. Burnout risk is ${(finalRisk * 100).toFixed(0)} percent. Found ${triggers.length} stress triggers.`
+        `Edge analysis complete. Burnout risk is ${(finalRisk * 100).toFixed(0)} percent. Found ${triggers.length} stress triggers.`
       );
-    }, 1200);
+    }
   };
 
   // Mock Avatar Lip-Sync speech player

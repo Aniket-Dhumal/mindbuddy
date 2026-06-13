@@ -10,16 +10,18 @@ export default function JournalSection() {
   const [examTarget, setExamTarget] = useState<ExamTarget>("JEE_ADVANCED");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!journalInput.trim()) return;
 
     setIsSubmitting(true);
-    triggerMockJournalAnalysis(journalInput, examTarget);
-
-    setTimeout(() => {
+    try {
+      await triggerMockJournalAnalysis(journalInput, examTarget);
+    } catch (err) {
+      console.error("Journal analysis error:", err);
+    } finally {
       setIsSubmitting(false);
-    }, 1200);
+    }
   };
 
   // Helper to get burnout threat levels
