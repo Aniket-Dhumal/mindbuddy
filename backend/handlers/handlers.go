@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -14,6 +16,123 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+type GeminiPart struct {
+	Text string `json:"text"`
+}
+
+type GeminiContent struct {
+	Parts []GeminiPart `json:"parts"`
+}
+
+type GeminiGenerationConfig struct {
+	ResponseMimeType string `json:"responseMimeType,omitempty"`
+}
+
+type GeminiRequest struct {
+	Contents         []GeminiContent        `json:"contents"`
+	GenerationConfig GeminiGenerationConfig `json:"generationConfig"`
+}
+
+type GeminiCandidatesPart struct {
+	Text string `json:"text"`
+}
+
+type GeminiCandidatesContent struct {
+	Parts []GeminiCandidatesPart `json:"parts"`
+}
+
+type GeminiCandidate struct {
+	Content GeminiCandidatesContent `json:"content"`
+}
+
+type GeminiAPIResponse struct {
+	Candidates []GeminiCandidate `json:"candidates"`
+}
+
+type GeminiResponse struct {
+	HiddenStressTriggers        []string `json:"hidden_stress_triggers"`
+	BurnoutRiskIndex            float64  `json:"burnout_risk_index"`
+	CopingStrategyPayload      string   `json:"coping_strategy_payload"`
+	MindfulnessExerciseAssigned string   `json:"mindfulness_exercise_assigned"`
+}
+
+// AnalyzeJournalWithGemini calls the Google Gemini API to analyze the journal text.
+func AnalyzeJournalWithGemini(text string, exam string) ([]string, float64, string, string, error) {
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	if apiKey == "" {
+		return nil, 0, "", "", fmt.Errorf("GEMINI_API_KEY not configured")
+	}
+
+	systemInstruction := `You are MindBuddy, an empathetic, expert Student Mental Wellness Twin companion designed to help Indian students preparing for highly competitive exams (JEE, NEET, CAT, UPSC) navigate academic pressure, stress, and anxiety.
+Analyze the student's open-ended journal entry. Identify specific stressors and calculate a burnout risk index between 0.00 (completely calm) and 1.00 (severe crisis/exhaustion).
+Expose NO developer jargon or technical metrics.
+You must respond with a JSON object containing EXACTLY these four keys:
+1. "hidden_stress_triggers": A string array containing 1 to 4 student-friendly stress triggers isolated from the text (e.g. "Mock Test Volatility", "Syllabus Backlog Panic", "Sleep Deprivation", "Family Expectation Stress").
+2. "burnout_risk_index": A float strictly between 0.00 and 1.00.
+3. "coping_strategy_payload": A warm, deeply supportive, personalized coping strategy (2-3 sentences) tailored to their specific stressors. Speak directly to them, with gentle, encouraging tone. Do not mention "as an AI" or "I am a mental wellness twin". Speak like a compassionate mentor.
+4. "mindfulness_exercise_assigned": A specific mindfulness exercise name and brief description (e.g., "5-4-3-2-1 Sensory Grounding: list 5 things you can see...").`
+
+	prompt := fmt.Sprintf("Student preparing for %s says: \"%s\"", exam, text)
+	fullText := fmt.Sprintf("%s\n\nUser Input: %s", systemInstruction, prompt)
+
+	reqPayload := GeminiRequest{
+		Contents: []GeminiContent{
+			{
+				Parts: []GeminiPart{
+					{Text: fullText},
+				},
+			},
+		},
+		GenerationConfig: GeminiGenerationConfig{
+			ResponseMimeType: "application/json",
+		},
+	}
+
+	jsonBytes, err := json.Marshal(reqPayload)
+	if err != nil {
+		return nil, 0, "", "", err
+	}
+
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=%s", apiKey)
+	
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Post(url, "application/json", bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		return nil, 0, "", "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, 0, "", "", fmt.Errorf("Gemini API error (Status: %d): %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	var apiResp GeminiAPIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, 0, "", "", err
+	}
+
+	if len(apiResp.Candidates) == 0 || len(apiResp.Candidates[0].Content.Parts) == 0 {
+		return nil, 0, "", "", fmt.Errorf("empty candidates in Gemini response")
+	}
+
+	rawJSONText := apiResp.Candidates[0].Content.Parts[0].Text
+
+	var geminiResult GeminiResponse
+	if err := json.Unmarshal([]byte(rawJSONText), &geminiResult); err != nil {
+		return nil, 0, "", "", fmt.Errorf("failed to unmarshal Gemini JSON output: %w. Raw text: %s", err, rawJSONText)
+	}
+
+	// Clamp risk strictly between 0.00 and 1.00
+	if geminiResult.BurnoutRiskIndex < 0.00 {
+		geminiResult.BurnoutRiskIndex = 0.00
+	} else if geminiResult.BurnoutRiskIndex > 1.00 {
+		geminiResult.BurnoutRiskIndex = 1.00
+	}
+
+	return geminiResult.HiddenStressTriggers, geminiResult.BurnoutRiskIndex, geminiResult.CopingStrategyPayload, geminiResult.MindfulnessExerciseAssigned, nil
+}
 
 // AnalyzeJournalNLP analyzes the journal text and returns extracted stress triggers and a burnout risk index.
 func AnalyzeJournalNLP(text string) ([]string, float64, string, string) {
@@ -120,8 +239,12 @@ func CreateJournalEntryHandler(c *gin.Context) {
 		return
 	}
 
-	// Extract triggers and calculate burnout risk via AI/NLP engine
-	triggers, risk, coping, mindfulness := AnalyzeJournalNLP(input.JournalEntryRaw)
+	// Extract triggers and calculate burnout risk via Gemini or local NLP engine fallback
+	triggers, risk, coping, mindfulness, errGemini := AnalyzeJournalWithGemini(input.JournalEntryRaw, string(input.ExamTarget))
+	if errGemini != nil {
+		fmt.Printf("[GEMINI WARNING] Falling back to rule-based local NLP: %v\n", errGemini)
+		triggers, risk, coping, mindfulness = AnalyzeJournalNLP(input.JournalEntryRaw)
+	}
 
 	// Encrypt the raw journal entry using CMEK (at-rest data protection)
 	cmek := crypto.GetCMEKManager()

@@ -7,13 +7,14 @@ RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /app
 
 # Copy dependency manifests
-COPY go.mod go.sum ./
-
-# Fetch dependencies
-RUN go mod download
+COPY go.mod ./
 
 # Copy source code
 COPY . .
+
+# Dynamically generate go.sum and download modules inside the container
+RUN go mod tidy
+RUN go mod download
 
 # Build the statically linked Go binary
 # CGO_ENABLED=0 disables C library links
