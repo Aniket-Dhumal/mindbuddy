@@ -63,6 +63,12 @@ func main() {
 		api.POST("/journal", handlers.CreateJournalEntryHandler)
 		api.GET("/journal/:student_id", handlers.GetJournalEntriesHandler)
 
+		// Conversational Chat / Live Voice Companion API
+		api.POST("/chat", handlers.CreateChatHandler)
+
+		// Secure WebSocket Proxy to Gemini Live
+		api.GET("/ws", handlers.LiveProxyHandler)
+
 		// Customer-Managed Encryption Key (CMEK) APIs
 		api.POST("/cmek/rotate", handlers.RotateCMEKHandler)
 		api.GET("/cmek/status", handlers.GetCMEKStatusHandler)
@@ -81,9 +87,9 @@ func main() {
 
 	// Graceful Shutdown implementation
 	go func() {
-		fmt.Printf("[SERVER INFO] Listening on port %%s...\n", port)
+		fmt.Printf("[SERVER INFO] Listening on port %s...\n", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server ListenAndServe error: %%s\n", err)
+			log.Fatalf("Server ListenAndServe error: %s\n", err)
 		}
 	}()
 

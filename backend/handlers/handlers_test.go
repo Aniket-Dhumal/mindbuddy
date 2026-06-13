@@ -43,7 +43,7 @@ func TestEncryptionDecryption(t *testing.T) {
 	plaintext := "MindBuddy stress level raw journal text"
 	encrypted, err := crypto.Encrypt([]byte(plaintext), key)
 	if err != nil {
-		t.Fatalf("Encryption failed: %%v", err)
+		t.Fatalf("Encryption failed: %v", err)
 	}
 
 	if encrypted == "" {
@@ -52,11 +52,11 @@ func TestEncryptionDecryption(t *testing.T) {
 
 	decrypted, err := crypto.Decrypt(encrypted, key)
 	if err != nil {
-		t.Fatalf("Decryption failed: %%v", err)
+		t.Fatalf("Decryption failed: %v", err)
 	}
 
 	if string(decrypted) != plaintext {
-		t.Errorf("Decrypted text does not match. Got '%%s', expected '%%s'", string(decrypted), plaintext)
+		t.Errorf("Decrypted text does not match. Got '%s', expected '%s'", string(decrypted), plaintext)
 	}
 }
 
@@ -67,11 +67,11 @@ func TestCMEKRotationAndCompatibility(t *testing.T) {
 	plaintext1 := "First entry with CMEK v1"
 	encrypted1, err := cmek.EncryptWithCMEK([]byte(plaintext1))
 	if err != nil {
-		t.Fatalf("CMEK Encryption 1 failed: %%v", err)
+		t.Fatalf("CMEK Encryption 1 failed: %v", err)
 	}
 
 	if !strings.HasPrefix(encrypted1, "v1:") {
-		t.Errorf("Expected CMEK payload 1 to start with 'v1:', got: %%s", encrypted1)
+		t.Errorf("Expected CMEK payload 1 to start with 'v1:', got: %s", encrypted1)
 	}
 
 	// Wait for rotation period to elapse
@@ -80,29 +80,29 @@ func TestCMEKRotationAndCompatibility(t *testing.T) {
 	plaintext2 := "Second entry after auto-rotation to v2"
 	encrypted2, err := cmek.EncryptWithCMEK([]byte(plaintext2))
 	if err != nil {
-		t.Fatalf("CMEK Encryption 2 failed: %%v", err)
+		t.Fatalf("CMEK Encryption 2 failed: %v", err)
 	}
 
 	if !strings.HasPrefix(encrypted2, "v2:") {
-		t.Errorf("Expected CMEK payload 2 to start with 'v2:', got: %%s", encrypted2)
+		t.Errorf("Expected CMEK payload 2 to start with 'v2:', got: %s", encrypted2)
 	}
 
 	// Decrypt second plaintext (uses v2)
 	decrypted2, err := cmek.DecryptWithCMEK(encrypted2)
 	if err != nil {
-		t.Fatalf("Decryption of v2 text failed: %%v", err)
+		t.Fatalf("Decryption of v2 text failed: %v", err)
 	}
 	if string(decrypted2) != plaintext2 {
-		t.Errorf("Expected decrypted v2 text '%%s', got '%%s'", plaintext2, string(decrypted2))
+		t.Errorf("Expected decrypted v2 text '%s', got '%s'", plaintext2, string(decrypted2))
 	}
 
 	// Decrypt first plaintext (uses v1 - backwards compatibility!)
 	decrypted1, err := cmek.DecryptWithCMEK(encrypted1)
 	if err != nil {
-		t.Fatalf("Decryption of v1 text after rotation failed: %%v", err)
+		t.Fatalf("Decryption of v1 text after rotation failed: %v", err)
 	}
 	if string(decrypted1) != plaintext1 {
-		t.Errorf("Expected decrypted v1 text '%%s', got '%%s'", plaintext1, string(decrypted1))
+		t.Errorf("Expected decrypted v1 text '%s', got '%s'", plaintext1, string(decrypted1))
 	}
 }
 
@@ -110,7 +110,7 @@ func TestCMEKRotationAndCompatibility(t *testing.T) {
 func TestDatabasePoolingConstraints(t *testing.T) {
 	stats := db.DB.Stats()
 	if stats.MaxOpenConnections != 25 {
-		t.Errorf("Strict pooling constraint violated: expected MaxOpenConnections = 25, got %%d", stats.MaxOpenConnections)
+		t.Errorf("Strict pooling constraint violated: expected MaxOpenConnections = 25, got %d", stats.MaxOpenConnections)
 	}
 }
 
@@ -123,7 +123,7 @@ func TestDataMappingAndValidationCompliance(t *testing.T) {
 		JournalEntryRaw: "I am feeling stressed about the upcoming mock test.",
 	}
 	if err := models.ValidateWellnessLog(validLog); err != nil {
-		t.Errorf("Valid log should pass validation, got error: %%v", err)
+		t.Errorf("Valid log should pass validation, got error: %v", err)
 	}
 
 	// 2. Invalid Exam Target (Compliance/Regulatory check)
@@ -169,20 +169,20 @@ func TestJournalRoutesIntegration(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusCreated {
-		t.Fatalf("Expected status 201 Created, got %%d. Body: %%s", w.Code, w.Body.String())
+		t.Fatalf("Expected status 201 Created, got %d. Body: %s", w.Code, w.Body.String())
 	}
 
 	var response models.StudentWellnessLog
 	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
-		t.Fatalf("Failed to parse response JSON: %%v", err)
+		t.Fatalf("Failed to parse response JSON: %v", err)
 	}
 
 	// Verify structural data mapping compliance (FR-1.3, FR-2.1)
 	if response.StudentID != studentID {
-		t.Errorf("Expected student_id '%%s', got '%%s'", studentID, response.StudentID)
+		t.Errorf("Expected student_id '%s', got '%s'", studentID, response.StudentID)
 	}
 	if response.BurnoutRiskIndex <= 0.20 {
-		t.Errorf("Expected high burnout risk index, got %%f", response.BurnoutRiskIndex)
+		t.Errorf("Expected high burnout risk index, got %f", response.BurnoutRiskIndex)
 	}
 	if len(response.HiddenStressTriggers) == 0 {
 		t.Errorf("Expected stress triggers to be identified, got empty list")
@@ -196,7 +196,7 @@ func TestJournalRoutesIntegration(t *testing.T) {
 		}
 	}
 	if !foundBacklogTrigger {
-		t.Errorf("Expected 'Syllabus Backlog Panic' or 'Sleep Deprivation' in triggers, got: %%v", response.HiddenStressTriggers)
+		t.Errorf("Expected 'Syllabus Backlog Panic' or 'Sleep Deprivation' in triggers, got: %v", response.HiddenStressTriggers)
 	}
 
 	// 2. Test GET /api/journal/:student_id (Retrieve and Decrypt)
@@ -206,12 +206,12 @@ func TestJournalRoutesIntegration(t *testing.T) {
 	r.ServeHTTP(wGet, reqGet)
 
 	if wGet.Code != http.StatusOK {
-		t.Fatalf("Expected status 200 OK, got %%d. Body: %%s", wGet.Code, wGet.Body.String())
+		t.Fatalf("Expected status 200 OK, got %d. Body: %s", wGet.Code, wGet.Body.String())
 	}
 
 	var logs []models.StudentWellnessLog
 	if err := json.Unmarshal(wGet.Body.Bytes(), &logs); err != nil {
-		t.Fatalf("Failed to parse logs JSON list: %%v", err)
+		t.Fatalf("Failed to parse logs JSON list: %v", err)
 	}
 
 	if len(logs) == 0 {
@@ -221,9 +221,9 @@ func TestJournalRoutesIntegration(t *testing.T) {
 	retrievedLog := logs[0]
 	// Verify data decrypted successfully
 	if retrievedLog.JournalEntryRaw != reqPayload["journal_entry_raw"] {
-		t.Errorf("Expected decrypted journal raw to match original, got '%%s'", retrievedLog.JournalEntryRaw)
+		t.Errorf("Expected decrypted journal raw to match original, got '%s'", retrievedLog.JournalEntryRaw)
 	}
 	if retrievedLog.BurnoutRiskIndex != response.BurnoutRiskIndex {
-		t.Errorf("Expected burnout risk index to match, got %%f vs %%f", retrievedLog.BurnoutRiskIndex, response.BurnoutRiskIndex)
+		t.Errorf("Expected burnout risk index to match, got %f vs %f", retrievedLog.BurnoutRiskIndex, response.BurnoutRiskIndex)
 	}
 }

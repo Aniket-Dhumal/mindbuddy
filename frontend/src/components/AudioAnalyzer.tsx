@@ -12,6 +12,9 @@ export default function AudioAnalyzer() {
     setIsMicActive,
     addLiveLog,
     announceToScreenReader,
+    availableVoices,
+    companionVoiceURI,
+    setCompanionVoiceURI,
   } = useApp();
 
   const [dbLevel, setDbLevel] = useState(-100); // Decibel level: -100 to 0
@@ -36,7 +39,6 @@ export default function AudioAnalyzer() {
 
       streamRef.current = stream;
       
-      // Initialize Web Audio API components
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       const audioCtx = new AudioContextClass();
       audioContextRef.current = audioCtx;
@@ -51,7 +53,6 @@ export default function AudioAnalyzer() {
       addLiveLog("Microphone connected. Analysis engine started.");
       announceToScreenReader("Microphone active. Real-time audio analyzing is enabled.");
 
-      // Analysis loop
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
 
@@ -59,21 +60,17 @@ export default function AudioAnalyzer() {
         if (!analyserRef.current) return;
         analyserRef.current.getByteTimeDomainData(dataArray);
 
-        // Compute Root Mean Square (RMS) amplitude
         let sumSquares = 0;
         for (let i = 0; i < bufferLength; i++) {
-          const normalized = (dataArray[i] - 128) / 128; // Normalize to [-1, 1]
+          const normalized = (dataArray[i] - 128) / 128;
           sumSquares += normalized * normalized;
         }
         const rms = Math.sqrt(sumSquares / bufferLength);
-        
-        // Convert to decibels (logarithmic scale)
         const db = rms > 0 ? 20 * Math.log10(rms) : -100;
 
         setRmsLevel(rms);
-        setDbLevel(Math.max(db, -100)); // Cap lower bound
+        setDbLevel(Math.max(db, -100));
 
-        // Map RMS level directly onto mouth openness (e.g. scale Y)
         const openness = Math.min(Math.max(rms * 2.8, 0.05), 1.0);
         setMouthOpenness(openness);
 
@@ -116,7 +113,6 @@ export default function AudioAnalyzer() {
     announceToScreenReader("Microphone turned off.");
   };
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (animationFrameRef.current) {
@@ -128,30 +124,51 @@ export default function AudioAnalyzer() {
     };
   }, []);
 
-  // UI decibel indicator percentage helper
   const dbPercentage = Math.round(((dbLevel + 100) / 100) * 100);
 
   return (
-    <div className="flex flex-col space-y-4 rounded-3xl border border-white/80 bg-white/40 p-5 backdrop-blur-xl shadow-sm">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col space-y-4 rounded-3xl border border-neutral-800/80 bg-neutral-900/40 p-5 backdrop-blur-xl shadow-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center space-x-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-500 border border-blue-100/50">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
             <Volume2 className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold tracking-tight text-slate-800">My Voice Helper</h3>
-            <p className="text-xs text-slate-500">Enable speaking with your companion</p>
+            <h3 className="text-sm font-bold tracking-tight text-neutral-100">Live Companion Voice Selection</h3>
+            <p className="text-[11px] text-neutral-400">Choose your perfect comforting presence</p>
           </div>
         </div>
 
+        {/* Dynamic SpeechSynthesis Voice picker */}
+        {availableVoices.length > 0 && (
+          <div className="relative">
+            <label htmlFor="companion-voice-select" className="sr-only">Choose companion voice</label>
+            <select
+              id="companion-voice-select"
+              value={companionVoiceURI}
+              onChange={(e) => setCompanionVoiceURI(e.target.value)}
+              className="w-full sm:w-48 text-[11px] bg-neutral-950/80 border border-neutral-800 text-neutral-200 rounded-xl px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 cursor-pointer"
+            >
+              {availableVoices.map((v) => (
+                <option key={v.voiceURI} value={v.voiceURI}>
+                  {v.name.replace("Microsoft", "").replace("Google", "").trim()} ({v.lang})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
+      {/* Mic toggle and speechwave meter */}
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center border-t border-neutral-850 pt-3">
         {/* Toggle switch with curvy buttons */}
         <button
           id="mic-toggle-button"
           onClick={isMicActive ? stopMicrophone : startMicrophone}
-          className={`flex items-center space-x-2 rounded-full px-5 py-2 text-xs font-bold tracking-wide transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#9F9FFF] focus:ring-offset-2 focus:ring-offset-slate-50 cursor-pointer ${
+          className={`flex items-center space-x-2 rounded-full px-5 py-2 text-xs font-bold tracking-wide transition-all duration-300 shadow-sm cursor-pointer ${
             isMicActive
-              ? "bg-rose-500/10 text-rose-600 border border-rose-200/50 hover:bg-rose-500/20"
-              : "bg-gradient-to-tr from-[#6366F1] to-[#8B5CF6] text-white hover:shadow-indigo-500/10 hover:scale-103"
+              ? "bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30"
+              : "bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-md shadow-indigo-500/10 hover:scale-102"
           }`}
           aria-pressed={isMicActive}
           aria-label={isMicActive ? "Turn off voice assistant" : "Turn on voice assistant to talk with your companion"}
@@ -159,7 +176,7 @@ export default function AudioAnalyzer() {
           {isMicActive ? (
             <>
               <MicOff className="h-3.5 w-3.5" />
-              <span>Turn Mic Off</span>
+              <span>Disable Live Talk</span>
             </>
           ) : (
             <>
@@ -168,46 +185,41 @@ export default function AudioAnalyzer() {
             </>
           )}
         </button>
+
+        {/* Visual meter bar */}
+        <div className="flex-1 w-full space-y-1">
+          <div className="flex justify-between text-[11px] font-bold text-neutral-400">
+            <span>LIVE AUDIO WAVEFORM:</span>
+            <span className={`text-[11px] font-bold ${isMicActive ? "text-cyan-400" : "text-neutral-400"}`}>
+              {isMicActive ? "Active Decibels" : "Silent standby"}
+            </span>
+          </div>
+          
+          {/* Modern multi-segment visual progress indicator bar */}
+          <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-neutral-950 p-0.5 border border-neutral-850">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-500 transition-all duration-75"
+              style={{ width: `${isMicActive ? dbPercentage : mouthOpenness * 100}%` }}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Visual meter bar */}
-      <div className="space-y-2">
-        <div className="flex justify-between text-xs font-bold text-slate-500">
-          <span>My Speech Wave:</span>
-          <span className="text-xs text-[#6366F1] font-bold">{isMicActive ? "Voice Connected" : "Mic Quiet"}</span>
-        </div>
-        
-        {/* Modern multi-segment visual progress indicator bar */}
-        <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-slate-100 p-0.5 border border-slate-200/50">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 transition-all duration-75"
-            style={{ width: `${isMicActive ? dbPercentage : mouthOpenness * 100}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Grid of details, completely stripped of technical Y-scale ratios or decibel math */}
-      <div className="grid grid-cols-2 gap-3 text-xs font-bold">
-        <div className="rounded-2xl bg-white/70 border border-slate-100/80 p-3 flex flex-col justify-center">
-          <span className="block text-slate-400 text-[10px] uppercase tracking-wider mb-0.5">Vocal Connection</span>
-          <span className={`text-xs ${isMicActive ? 'text-emerald-600' : 'text-slate-500'}`}>
-            {isMicActive ? "Active" : "Standby"}
+      {/* Grid of details */}
+      <div className="grid grid-cols-2 gap-3 text-xs font-bold border-t border-neutral-850 pt-3">
+        <div className="rounded-2xl bg-neutral-950/40 border border-neutral-850 p-3 flex flex-col justify-center">
+          <span className="block text-neutral-400 text-[9px] uppercase tracking-widest mb-0.5">Vocal Connection</span>
+          <span className={`text-xs ${isMicActive ? 'text-cyan-400' : 'text-neutral-400'}`}>
+            {isMicActive ? "Streaming" : "Standby"}
           </span>
         </div>
-        <div className="rounded-2xl bg-white/70 border border-slate-100/80 p-3 flex flex-col justify-center">
-          <span className="block text-slate-400 text-[10px] uppercase tracking-wider mb-0.5">Companion Voice Status</span>
-          <span className={`text-xs ${mouthOpenness > 0.15 ? 'text-pink-600' : 'text-slate-500'}`}>
+        <div className="rounded-2xl bg-neutral-950/40 border border-neutral-850 p-3 flex flex-col justify-center">
+          <span className="block text-neutral-400 text-[9px] uppercase tracking-widest mb-0.5">Twin Voice Status</span>
+          <span className={`text-xs ${mouthOpenness > 0.15 ? 'text-pink-400' : 'text-neutral-400'}`}>
             {mouthOpenness > 0.15 ? "Speaking..." : "Quiet"}
           </span>
         </div>
       </div>
-
-      {/* Accessible landmark descriptor */}
-      <span className="sr-only">
-        {isMicActive 
-          ? "Microphone is currently active and helping you talk to your wellness companion."
-          : "Microphone analysis is currently on standby."}
-      </span>
     </div>
   );
 }

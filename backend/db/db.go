@@ -45,7 +45,7 @@ func InitDB() (*sql.DB, error) {
 	}
 
 	DB = db
-	fmt.Printf("[DB INFO] Connection pool successfully initialized (MaxOpenConns = 25). Database driver: %%s\n", driverName)
+	fmt.Printf("[DB INFO] Connection pool successfully initialized (MaxOpenConns = 25). Database driver: %s\n", driverName)
 
 	// Run migration schemas
 	if err := runMigrations(db, driverName); err != nil {

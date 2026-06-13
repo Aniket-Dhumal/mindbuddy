@@ -99,7 +99,7 @@ func (m *CMEKManager) GetActiveKey() ([]byte, string) {
 
 	if time.Since(m.keyCreatedAt) >= m.rotationPeriod {
 		version := m.rotateKey()
-		fmt.Printf("[CMEK INFO] 90-day rotation period elapsed. Auto-rotated to key version: %%s\n", version)
+		fmt.Printf("[CMEK INFO] 90-day rotation period elapsed. Auto-rotated to key version: %s\n", version)
 	}
 
 	return m.keys[m.activeVersion], m.activeVersion
@@ -112,7 +112,7 @@ func (m *CMEKManager) GetKeyByVersion(version string) ([]byte, error) {
 
 	key, exists := m.keys[version]
 	if !exists {
-		return nil, fmt.Errorf("key version '%%s' not found", version)
+		return nil, fmt.Errorf("key version '%s' not found", version)
 	}
 	return key, nil
 }
@@ -127,7 +127,7 @@ func (m *CMEKManager) EncryptWithCMEK(plaintext []byte) (string, error) {
 		return "", err
 	}
 	
-	return fmt.Sprintf("%%s:%%s", version, ciphertext), nil
+	return fmt.Sprintf("%s:%s", version, ciphertext), nil
 }
 
 // DecryptWithCMEK decrypts a version-prefixed ciphertext string.

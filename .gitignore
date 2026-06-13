@@ -6,8 +6,8 @@ frontend/build/
 
 # Go build outputs
 backend/mindbuddy
-backend/mindbuddy.db
-backend/mindbuddy.db-journal
+*.db
+*.db-journal
 
 # OS files
 .DS_Store
