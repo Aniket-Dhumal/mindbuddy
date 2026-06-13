@@ -142,14 +142,15 @@ export default function AudioAnalyzer() {
           </div>
           <div>
             <h3 className="text-sm font-semibold tracking-wide text-neutral-100">Web Audio Analyzer</h3>
-            <p className="text-xs text-neutral-400">Lip-sync analysis state</p>
+            <p className="text-xs text-neutral-350">Lip-sync analysis state</p>
           </div>
         </div>
 
         {/* Toggle switch with curvy buttons */}
         <button
+          id="mic-toggle-button"
           onClick={isMicActive ? stopMicrophone : startMicrophone}
-          className={`flex items-center space-x-2 rounded-full px-5 py-2 text-xs font-semibold tracking-wider transition-all duration-300 shadow-md ${
+          className={`flex items-center space-x-2 rounded-full px-5 py-2 text-xs font-semibold tracking-wider transition-all duration-300 shadow-md focus:outline-none focus:ring-2 focus:ring-cyan-500/80 focus:ring-offset-2 focus:ring-offset-neutral-900 ${
             isMicActive
               ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30"
               : "bg-cyan-500 text-neutral-950 hover:bg-cyan-400 font-bold hover:shadow-[0_0_15px_rgba(6,182,212,0.4)]"
@@ -173,7 +174,7 @@ export default function AudioAnalyzer() {
 
       {/* Visual meter bar */}
       <div className="space-y-2">
-        <div className="flex justify-between text-xs text-neutral-400">
+        <div className="flex justify-between text-xs text-neutral-350">
           <span>Decibel Variance (Audio Input)</span>
           <span className="font-mono text-cyan-400 font-semibold">{dbLevel > -100 ? `${dbLevel.toFixed(1)} dB` : "MUTED"}</span>
         </div>
@@ -188,15 +189,15 @@ export default function AudioAnalyzer() {
       </div>
 
       {/* Grid of details */}
-      <div className="grid grid-cols-2 gap-3 text-[11px] font-medium text-neutral-400">
+      <div className="grid grid-cols-2 gap-3 text-[11px] font-medium text-neutral-350">
         <div className="rounded-lg bg-neutral-950/60 border border-neutral-800/40 p-2.5">
-          <span className="block text-neutral-500 text-[10px] uppercase tracking-wider mb-0.5">Mouth Scaling Ratio</span>
-          <span className="font-mono text-xs text-rose-400 font-semibold">
+          <span className="block text-neutral-400 text-[10px] uppercase tracking-wider mb-0.5">Mouth Scaling Ratio</span>
+          <span className="font-mono text-xs text-rose-300 font-semibold">
             Y-Scale: {((mouthOpenness * 12.0) + 0.15).toFixed(2)}x
           </span>
         </div>
         <div className="rounded-lg bg-neutral-950/60 border border-neutral-800/40 p-2.5">
-          <span className="block text-neutral-500 text-[10px] uppercase tracking-wider mb-0.5">Input Amplitude (RMS)</span>
+          <span className="block text-neutral-400 text-[10px] uppercase tracking-wider mb-0.5">Input Amplitude (RMS)</span>
           <span className="font-mono text-xs text-emerald-400 font-semibold">
             {(rmsLevel * 100).toFixed(1)}%
           </span>

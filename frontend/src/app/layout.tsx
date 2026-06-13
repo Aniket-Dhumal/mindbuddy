@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MindBuddy — Generative AI Student Wellness Twin",
-  description: "Enterprise-grade, high-accessibility student mental wellness twin platform for JEE, NEET, CAT, and UPSC aspirants.",
+  title: "MindBuddy â€” Generative AI-Powered Student Mental Wellness Twin",
+  description: "Enterprise-grade high-accessibility student mental wellness twin platform designed for competitive exam aspirants.",
 };
 
 export default function RootLayout({
@@ -26,10 +26,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100 selection:bg-cyan-500/30">
-        <AppProvider>{children}</AppProvider>
+      <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100">
+        <AppProvider>
+          {children}
+        </AppProvider>
       </body>
     </html>
   );

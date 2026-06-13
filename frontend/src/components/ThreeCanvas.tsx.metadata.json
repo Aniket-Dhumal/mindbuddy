@@ -1,0 +1,5 @@
+{
+  "summary":  "Updated ThreeCanvas component to enforce strict WAI-ARIA role=\"region\" and aria-label landmark tags on the Three.js viewport container, and configured custom tabIndex with high-contrast focus outlines for complete keyboard accessibility support.",
+  "updatedAt":  "2026-06-13T06:30:58.887297400Z",
+  "userFacing":  true
+}

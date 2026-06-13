@@ -191,9 +191,11 @@ export default function ThreeCanvas() {
 
   return (
     <div
+      id="three-canvas-container"
       role="region"
       aria-label="Interactive 3D Holographic AI Twin Avatar Viewport"
-      className="relative h-full w-full rounded-2xl overflow-hidden border border-neutral-800/80 bg-neutral-950/60 backdrop-blur-md shadow-[0_0_50px_-12px_rgba(6,182,212,0.15)]"
+      className="relative h-full w-full rounded-2xl overflow-hidden border border-neutral-800/80 bg-neutral-950/60 backdrop-blur-md shadow-[0_0_50px_-12px_rgba(6,182,212,0.15)] focus:outline-none focus:ring-2 focus:ring-cyan-500/80 focus:ring-offset-2 focus:ring-offset-neutral-950"
+      tabIndex={0}
     >
       {/* Glow gradient effects behind Canvas */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-44 w-44 rounded-full bg-cyan-500/10 blur-[80px] pointer-events-none" />
